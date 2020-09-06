@@ -17,7 +17,10 @@ func main() {
 
 	for i := 0; i < 3; i++ {
 		IDs = append(IDs, uuid.Must(uuid.NewV4()))
-		writeUser(IDs[i])
+		id:= writeUser(IDs[i])
+		if id == nil {
+			log.Fatal("no doc in the DB")
+		}
 	}
 	router.GET("/", home)
 	router.GET("/setTokens", setTokens)

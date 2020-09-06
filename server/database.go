@@ -3,7 +3,8 @@ package main
 import (
 	"log"
 	"context"
-		
+	//"time"
+	
 	"github.com/gobuffalo/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson"
@@ -12,24 +13,27 @@ import (
 )
 //User struct describes a user 
 type User struct {
-	ID uuid.UUID `bson: "_id`
-	Session Session `bson: "session_id`
+	ID uuid.UUID `json: "_id"`
+	Session Session `json: "session_id"`
 }
 
-const dbURI =  "mongodb://localhost:27017"
-//const dbURI = "mongodb+srv://goMongo:DBAuthApp@cluster0.p2liz.mongodb.net/authGo?retryWrites=true&w=majority&tlsInsecure=true"
+var client mongo.Client
+const dbURI =  "mongodb://localhost:30001,localhost:30002,localhost:30003/?replicaSet=rs0"
 var collection 	*mongo.Collection
 //var cntx, _ = context.WithTimeout(context.TODO(), 10*time.Second)
 //defer cancel()
-var client mongo.Client
 
 func connectToTheDB() {
-	//context, cancel := context.WithTimeout(context.TODO(), 10*time.Second)
+	//contxt, _ := context.WithTimeout(context.TODO(), 10*time.Second)
 	client, err  := mongo.Connect(context.TODO(), options.Client().ApplyURI(dbURI)) 
-	//defer cancel()
 	if err != nil {
 		log.Fatal("problems connecting to the db:(",err)
 	}
+	// defer func() {
+	// 	if err = client.Disconnect(context.TODO()); err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// }()
 	err = client.Ping(context.TODO(), nil)
 	if err != nil {
 		log.Fatal(err)
@@ -40,10 +44,11 @@ func connectToTheDB() {
 //check if user is in dB passing id as arg
 func findUser(id uuid.UUID) (isPresent bool){
 	//if user is present in DB isPresent is true
-	filter := bson.M{"_id": id}
-	err := collection.FindOne(context.TODO(), filter)
+	filter := bson.D{{"_id", id}}
+	var result bson.M
+	err := collection.FindOne(context.TODO(), filter).Decode(&result)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("error finding users: ", err)
 	}else {
 		isPresent = true
 	}
@@ -53,13 +58,13 @@ func findUser(id uuid.UUID) (isPresent bool){
 func readUsers() (results User) {
 	cur, err := collection.Find(context.TODO(), bson.M{})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error finding users: %s", err)
 	}
 	defer cur.Close(context.Background())
 	for cur.Next(context.Background()){
 		err = cur.Decode(results)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("error decoding users: %s", err)
 		}
 	}
 	return results
@@ -73,22 +78,25 @@ func insertNewSession(session Session) {
 	update := bson.M{"$set": bson.M{"_id": session.UserID, "session": bson.M{"session_id": session.ID, "refresh": session.Refresh, "expires_at":session.ExpiresAt, "is_session_over": session.IsSessionOver}}}
 	err := collection.FindOneAndUpdate(context.Background(), filter, update, opts)
 	if err != nil{
-		log.Fatal()
+		log.Fatal("error creating new session ", err)
 	}
 }
 //edited 17:38
-func writeUser(id uuid.UUID) {
-	_, err := collection.InsertOne(context.Background(), bson.M{"_id": id})
+func writeUser(id uuid.UUID)(reid interface{}) {
+	log.Print(id)
+	res, err := collection.InsertOne(context.Background(), bson.M{"_id": id})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("insertOne to the DB error: %s", err)
 	}
+	reid = res.InsertedID
+	return reid
 }
 //edited 18:50
 func readSessionInfo(id uuid.UUID) (info Session){
-	filter := bson.M{"_id": id}
+	filter := bson.D{{"_id", id}}
 	err := collection.FindOne(context.Background(), filter, nil).Decode(&info)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("findOne to the DB error: %s", err)
 	}
 	return info
 }
@@ -102,7 +110,7 @@ callback := func(sessCtx mongo.SessionContext) (interface{}, error) {
 }
 session, err := client.StartSession() 
 if err != nil{
-	log.Fatal(err)
+	log.Fatalf("error starting session %s", err)
 }
 defer session.EndSession(context.Background())
 _, _ = session.WithTransaction(context.Background(), callback)
@@ -114,6 +122,6 @@ func delAllRefresh(id uuid.UUID) {
 
 	_, err := collection.DeleteMany(context.Background(), bson.M{"_id": id}, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error deleting mane from the DB %s", err)
 	}
 }

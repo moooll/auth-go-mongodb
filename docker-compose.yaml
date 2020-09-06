@@ -1,0 +1,40 @@
+version: '3'
+services:
+  mongo1:
+    image: "mongo"
+    expose:
+     - 27017
+    restart: always
+    entrypoint: ["mongod", "--bind_ip_all", "--replSet","rs0"]
+
+  mongo2:
+    image: "mongo"
+    expose:
+     - 27017
+    restart: always
+    entrypoint: ["mongod", "--bind_ip_all", "--replSet","rs0"]
+
+  mongo3:
+    image: "mongo"
+    expose:
+     - 27017
+    restart: always
+    entrypoint: ["mongod", "--bind_ip_all", "--replSet","rs0"]
+
+  mongo-setup:
+    build: ./mongo-setup
+    entrypoint: ["mongo", "--host", "mongo1", "--port", "27017", "--eval", 'rs.initiate( { _id : "rs0", members : [{ _id: 0, host: "mongo1:27017" }, { _id : 1, host: "mongo2:27017"}, { _id : 2, host: "mongo3:27017"} ]})']
+    depends_on:
+     - mongo1
+     - mongo2
+     - mongo3
+  
+  server:
+    build: .
+    expose: 
+     - 8084
+  
+
+
+
+  
