@@ -29,8 +29,8 @@ func TestFindUser(t *testing.T) {
 	if err != nil {
 		log.Fatalf("error parsing uuid from string: %s", err)
 	}
-	isPresent := findUser(uid)
-	if isPresent == false {
+	isPresent, err := findUser(uid)
+	if isPresent == false || err != nil {
 		t.Error("test failed, user id not found")
 	}
 }

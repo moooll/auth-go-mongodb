@@ -41,7 +41,7 @@ type RefreshKitFromClient struct {
 var response SuccessResponseNewAccess
 
 //Marsh to marshall everything
-func Marsh(toM interface{})(m []byte) {
+func Marsh(toM interface{}) (m []byte) {
 	m, err := json.Marshal(toM)
 	if err != nil {
 		log.Fatal("error marshalling", toM, err)
@@ -49,10 +49,9 @@ func Marsh(toM interface{})(m []byte) {
 	return m
 }
 
-//edited 18:50
 func home(ctx *fasthttp.RequestCtx) {
 	ctx.Write([]byte("This is an auth app.Users' IDs:\n"))
-	
+
 	for _, v := range IDs {
 		ctx.Write(Marsh(v))
 		ctx.Write([]byte("\n"))
@@ -62,9 +61,13 @@ func home(ctx *fasthttp.RequestCtx) {
 func setTokens(ctx *fasthttp.RequestCtx) {
 	ctx.WriteString("set tokens\n")
 	reqUser := uuid.FromBytesOrNil(ctx.Request.Header.PeekBytes([]byte("id")))
-	found := findUser(reqUser)
+	found, err := findUser(reqUser)
+	if err != nil {
+		log.Println(err)
+	}
 	if found == true {
 		insertNewSession(createNewTokens(reqUser))
+		ctx.Write([]byte("Tokens created\n"))
 	} else {
 		ctx.Write([]byte("No user with this ID is present is the database\n"))
 	}

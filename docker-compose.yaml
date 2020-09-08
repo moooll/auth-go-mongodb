@@ -4,6 +4,8 @@ services:
     image: "mongo"
     expose:
      - 27017
+    ports: 
+     - 27012:27017
     restart: always
     entrypoint: ["mongod", "--bind_ip_all", "--replSet","rs0"]
 
@@ -11,6 +13,8 @@ services:
     image: "mongo"
     expose:
      - 27017
+    ports: 
+      - 27013:27017
     restart: always
     entrypoint: ["mongod", "--bind_ip_all", "--replSet","rs0"]
 
@@ -18,6 +22,8 @@ services:
     image: "mongo"
     expose:
      - 27017
+    ports: 
+     - 27014:27017
     restart: always
     entrypoint: ["mongod", "--bind_ip_all", "--replSet","rs0"]
 
@@ -33,8 +39,8 @@ services:
     build: .
     expose: 
      - 8084
-  
-
+    ports:
+     - 8084:8084
 
 
   

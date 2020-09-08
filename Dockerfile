@@ -1,14 +1,13 @@
-FROM golang:1.14
+FROM golang:latest
 
-WORKDIR /auth-go-mongodb
-COPY    go.mod  .
-COPY go.sum .
+WORKDIR /app
+COPY go.mod go.sum /app/
 RUN go mod download 
-COPY ./server ./server
-RUN cd server \
-   go build
+COPY . .
+WORKDIR /app/server
+RUN go build
 EXPOSE "8084"
 
 
-CMD ["/auth-go-mongodb/server/server"]
+ENTRYPOINT ["./server"]
 
